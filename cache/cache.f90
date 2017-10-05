@@ -48,28 +48,34 @@ program cache
   ! Run test
   !
 
+  print '(A)', '***********************************************************************'
+  print '(A)', 'Cache performance test                                                 '
+  print '(A)', '***********************************************************************'
+  print *
+  print '(A)', '  Arr Size *  Memory  * Actual GFLOPS *  Peak GFLOPS  *   Efficiency  *' 
+
   ! Compute peak performance
   ! Clock rate * vector width * 2 (FMA = 2 FLOPs)
-  peakperformance = clock_rate*vector_width*2
+  peakperformance = clock_rate*vector_width*2.0d0
 
   ! Iterate array size, using 9 points per decade
   do size_step = 1, size_steps
 
     ! Compute decade, start with 10
-	decade = 10**((size_step+8)/9)
+    decade = 10**((size_step+8)/9)
 
     ! Compute array size
     nelements = (mod(size_step+8, 9)+1)*decade
 
-	! Compute number of repetitions for statistics, repetitions
-	! decrease with every decade. Need a lot of repetitions for
-	! the shortest array lengths.
+    ! Compute number of repetitions for statistics, repetitions
+    ! decrease with every decade. Need a lot of repetitions for
+    ! the shortest array lengths.
     nstats = max(10, 1000000/decade)
 
     ! Compute number of bytes in array
     nbyte = realkind * nelements
 
-	! Limit work array size to 1 GB
+    ! Limit work array size to 1 GB
     if (nbyte > 2**30) then
       write(*,*) "Array to large! Exit..."
       stop
@@ -89,14 +95,14 @@ program cache
       maxperformance = max(maxperformance, performance)
     end do
 
-	if (tick_warning) then
-	  print *, 'WARNING: at least one computation was shorter than 10 ticks!'
+    if (tick_warning) then
+      print *, 'WARNING: at least one computation was shorter than 10 ticks!'
       print *, 'Performance measurement may not be reliable.'
     end if
     
-	! Print performance results
-    print '(2(I10, 1X), 3(F8.4, 1X))', nelements, nbyte, maxperformance/peakperformance, &
-	& maxperformance, peakperformance
+    ! Print performance results
+    print '(2(1X, I10), 1X, 3(7X, F8.4, 1X))', nelements, nbyte, maxperformance, peakperformance, &
+         & maxperformance/peakperformance
 
     deallocate(workarray)
 
@@ -111,8 +117,8 @@ contains
   subroutine compute(nx, nrepeat, use_blocking, blocksize, work, performance, too_few_ticks)
     implicit none
 	
-	!
-	! Arguments
+    !
+    ! Arguments
     !
 
     integer, intent(in) :: nx, nrepeat
@@ -120,11 +126,11 @@ contains
     integer, intent(in) :: blocksize
     real(kind=realkind), dimension(nx), intent(out) :: work
     real(kind=8), intent(out) :: performance
-	logical, intent(inout) :: too_few_ticks
+    logical, intent(inout) :: too_few_ticks
 
-	!
-	! Local variables
-	!
+    !
+    ! Local variables
+    !
 
     integer :: i, j, k, elems_per_block, nblocks
     integer, dimension(2) :: irange
@@ -147,7 +153,7 @@ contains
     ! Compute number of blocks
     nblocks = (nx-1)/elems_per_block + 1
 
-	! Block loop
+    ! Block loop
     do k = 1, nblocks
 
       ! Compute index range for this block
@@ -157,10 +163,10 @@ contains
       ! Simulate cache reuse: repeat computation
       do j = 1, nrepeat
 
-	    ! Work loop - vectorises
+        ! Work loop - vectorises
         do i = irange(1), irange(2)
 
-	      ! This should be run as one FMA instruction (2 FLOPs)
+          ! This should be run as one FMA instruction (2 FLOPs)
           work(i) = 2.3*work(i) + 7.13
         end do
       end do
@@ -169,8 +175,8 @@ contains
     ! Get timer
     call system_clock(stopclock, clockrate)
 
-	! Check if number of ticks is large enough; return no result and
-	! raise flag if not.
+    ! Check if number of ticks is large enough; return no result and
+    ! raise flag if not.
     if ((stopclock - startclock) < 10) then
       too_few_ticks = .true.
       performance = 0.
